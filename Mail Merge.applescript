@@ -175,6 +175,25 @@ on run
 	tell application "Pages" to activate
 	tell application "System Events"
 		tell process "Pages"
+			-- Check setup
+			display notification "Checking setup..." with title "Mail Merge" subtitle "Preparing for merge..."
+			set oldWindow to title of first window
+			keystroke "f" using command down
+			my waitForPagesWindowToChangeFrom(oldWindow)
+			try
+				button 4 of window 1
+			on error
+				click menu button 1 of window 1
+				delay 0.5
+				key code 125 -- down arrow
+				delay 0.5
+				key code 125 -- down arrow
+				delay 0.5
+				keystroke return
+			end try
+			set oldWindow to title of first window
+			keystroke "w" using command down
+			my waitForPagesWindowToChangeFrom(oldWindow)
 			
 			-- Copy template
 			display notification "Copying template..." with title "Mail Merge" subtitle "Preparing for merge..."
