@@ -154,6 +154,8 @@ on run
 	
 	set fieldDelimiter to "%"
 	set unusedFieldTimeout to 2
+	set indexOfReplaceButton to 4
+	set backupIndexOfReplaceButton to 1
 	
 	if not checkForCorrectUsage() then return
 	
@@ -181,7 +183,7 @@ on run
 			keystroke "f" using command down
 			my waitForPagesWindowToChangeFrom(oldWindow)
 			try
-				button 4 of window 1
+				button indexOfReplaceButton of window 1
 			on error
 				click menu button 1 of window 1
 				delay 0.5
@@ -191,6 +193,10 @@ on run
 				delay 0.5
 				keystroke return
 			end try
+			if title of button indexOfReplaceButton of window 1 is missing value then
+				set indexOfReplaceButton to backupIndexOfReplaceButton
+			end if
+			
 			set oldWindow to title of first window
 			keystroke "w" using command down
 			my waitForPagesWindowToChangeFrom(oldWindow)
@@ -253,9 +259,9 @@ on run
 						key code 51 -- delete
 						if currentValue is not missing value then keystroke currentValue
 						
-						if my waitForEnabledWithTimeout(button 4 of window 1, unusedFieldTimeout) then
-							click button 4 of window 1
-							my waitForDisabled(button 4 of window 1) -- button is disabled when replacement is done
+						if my waitForEnabledWithTimeout(button indexOfReplaceButton of window 1, unusedFieldTimeout) then
+							click button indexOfReplaceButton of window 1
+							my waitForDisabled(button indexOfReplaceButton of window 1) -- button is disabled when replacement is done
 							set replacementCount to replacementCount + 1
 						else
 							copy fieldIndex to end of skippedFields
