@@ -18,7 +18,7 @@ on enabledGUIScripting(flag) -- https://gist.github.com/iloveitaly/2ff08138091af
 			if not GUIScriptingEnabled then
 				activate
 				set scriptRunner to name of current application
-				display alert "GUI Scripting is not enabled for " & scriptRunner & "." message "Open System Preferences, unlock the Security & Privacy preference, select " & scriptRunner & " in the Privacy Pane's Accessibility list, and then run this script again." buttons {"Open System Preferences", "Cancel"} default button "Cancel"
+				display alert "You must change some settings to allow Mail Merge to run." message "You must unlock the Security & Privacy preference pane (by clicking the lock icon), check the box next to \"" & scriptRunner & "\" in the Accessibility list, and then run this script again." buttons {"Cancel", "Open System Preferences"} default button "Open System Preferences"
 				if button returned of result is "Open System Preferences" then
 					tell application "System Preferences"
 						tell pane id "com.apple.preference.security" to reveal anchor "Privacy_Accessibility"
@@ -149,6 +149,14 @@ on roundToTwoDecimals(unroundedValue)
 	return ((round (unroundedValue * 100)) / 100)
 end roundToTwoDecimals
 
+on keystrokeCorrectly(someString)
+	repeat with currentChar in the characters of (someString as string)
+		delay 0.01
+		tell application "System Events" to keystroke currentChar
+		
+	end repeat
+end keystrokeCorrectly
+
 on run
 	if my enabledGUIScripting(true) is false then return
 	
@@ -169,7 +177,9 @@ on run
 	tell application "Pages"
 		set pagesDocument to name of document 1
 		set pagesDocumentHasBody to document body of document 1
-		display dialog "Ready to merge data from table \"" & tableName & "\" in \"" & numbersDocument & "\" into \"" & pagesDocument & "\"." with icon note
+		display dialog "Ready to merge data from table \"" & tableName & "\" in \"" & numbersDocument & "\" into \"" & pagesDocument & "\".
+
+Don't interact with your computer during the merge." with icon note
 	end tell
 	
 	set scriptStartTime to current date
@@ -238,26 +248,27 @@ on run
 				set oldWindow to title of first window
 				keystroke "f" using command down
 				my waitForPagesWindowToChangeFrom(oldWindow)
+				
+				-- Display progress to user
+				set notificationSubtitle to "Merging entry " & entryIndex & " of " & (count of entries)
+				set notificationMessage to ""
+				
+				if (count of entryTimes) > 0 then
+					set remainingTime to (my average(entryTimes)) * ((count of entries) - (entryIndex - 1)) / 60
+					set notificationMessage to "Remaining time: " & my roundToTwoDecimals(remainingTime) & " minutes"
+				end if
+				display notification notificationMessage with title "Mail Merge" subtitle notificationSubtitle
+				
 				repeat with fieldIndex from 1 to count of fields
-					
-					-- Display progress to user
-					set notificationSubtitle to "Merging entry " & entryIndex & " of " & (count of entries) & "; field " & fieldIndex & " of " & (count of fields)
-					set notificationMessage to ""
-					
-					if (count of entryTimes) > 0 then
-						set remainingTime to (my average(entryTimes)) * ((count of entries) - (entryIndex - 1)) / 60
-						set notificationMessage to "Remaining time: " & my roundToTwoDecimals(remainingTime) & " minutes"
-					end if
-					display notification notificationMessage with title "Mail Merge" subtitle notificationSubtitle
 					
 					-- Meat & potatoes
 					if skippedFields does not contain fieldIndex then
 						set currentValue to item fieldIndex of item entryIndex of entries
 						
-						keystroke fieldDelimiter & item fieldIndex of fields & fieldDelimiter
+						my keystrokeCorrectly(fieldDelimiter & item fieldIndex of fields & fieldDelimiter)
 						keystroke tab
 						key code 51 -- delete
-						if currentValue is not missing value then keystroke currentValue
+						if currentValue is not missing value then my keystrokeCorrectly(currentValue)
 						
 						if my waitForEnabledWithTimeout(button indexOfReplaceButton of window 1, unusedFieldTimeout) then
 							click button indexOfReplaceButton of window 1
@@ -282,13 +293,17 @@ on run
 					key code 124 -- right arrow
 				end if
 				
-				-- Scroll to end of document
-				key code 119 -- end
-				my waitForPagesToScrollToLastPage()
+				-- If needed, scroll to end of document
+				if not pagesDocumentHasBody then
+					key code 119 -- end
+					my waitForPagesToScrollToLastPage()
+				end if
 				
 				set afterEntryTime to current date
 				set totalEntryTime to afterEntryTime - beforeEntryTime
-				copy totalEntryTime to end of entryTimes
+				if (entryIndex > 1) or ((count of skippedFields) is 0) then
+					copy totalEntryTime to end of entryTimes
+				end if
 			end repeat
 		end tell
 	end tell
