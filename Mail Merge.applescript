@@ -110,22 +110,27 @@ on waitForEnabledWithTimeout(interfaceElement, timeoutSeconds)
 	set success to true
 	set deadline to (current date) + timeoutSeconds
 	tell application "System Events"
-		repeat while (interfaceElement is not enabled)
-			delay 0.1
-			if (current date) > deadline then
-				set success to false
-				exit repeat
-			end if
-		end repeat
+		tell process "Pages"
+			repeat while (enabled of interfaceElement) is false
+				delay 0.2
+				if (current date) > deadline then
+					set success to false
+					exit repeat
+				end if
+			end repeat
+		end tell
 	end tell
+	
 	return success
 end waitForEnabledWithTimeout
 
 on waitForDisabled(interfaceElement)
 	tell application "System Events"
-		repeat while (interfaceElement is enabled)
-			delay 0.1
-		end repeat
+		tell process "Pages"
+			repeat while (interfaceElement is enabled)
+				delay 0.1
+			end repeat
+		end tell
 	end tell
 end waitForDisabled
 
@@ -150,10 +155,14 @@ on roundToTwoDecimals(unroundedValue)
 end roundToTwoDecimals
 
 on keystrokeCorrectly(someString)
-	repeat with currentChar in the characters of (someString as string)
+	set AppleScript's text item delimiters to {return & linefeed, return, linefeed, character id 8233, character id 8232}
+	set escapedString to text items of (someString as string)
+	set AppleScript's text item delimiters to "\\n"
+	set escapedString to escapedString as text
+	
+	repeat with currentChar in the characters of (escapedString as string)
 		delay 0.01
 		tell application "System Events" to keystroke currentChar
-		
 	end repeat
 end keystrokeCorrectly
 
